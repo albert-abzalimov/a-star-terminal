@@ -2,7 +2,7 @@
 use std::{
     fmt::{Debug, Display},
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader}, cmp::Ordering,
 };
 
 const WIDTH: usize = 10;
@@ -133,6 +133,7 @@ impl Grid {
     }
 
     pub fn retrace_path(&mut self) {
+        println!("the endtile's parent is {:?}", self.end_tile.parent);
         let mut current_node = self.end_tile;
         while current_node != self.start_tile{
             self.tiles[current_node.x as usize][current_node.y as usize].class = TileType::Path;
@@ -171,7 +172,7 @@ impl Default for TileType {
     }
 }
 
-#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Coordinate(pub i32, pub i32);
 
 #[derive(Clone, Copy, Default)]
@@ -183,6 +184,47 @@ pub struct Tile {
     pub class: TileType,
     pub parent: Coordinate,
 }
+
+impl PartialEq for Tile{
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y
+    }
+}
+
+impl PartialOrd for Tile{
+    fn ge(&self, other: &Self) -> bool {
+        self.f_cost() >= other.f_cost()
+    }
+    fn gt(&self, other: &Self) -> bool {
+        self.f_cost() > other.f_cost()
+    }
+    fn le(&self, other: &Self) -> bool {
+        self.f_cost() <= other.f_cost()
+    }
+    fn lt(&self, other: &Self) -> bool {
+        self.f_cost() < other.f_cost()
+    }
+    fn partial_cmp(&self, _other: &Self) -> Option<std::cmp::Ordering> {
+        None
+    }
+}
+impl Eq for Tile{}
+impl Ord for Tile{
+    fn clamp(self, min: Self, max: Self) -> Self
+        where
+            Self: Sized, {
+        if self.f_cost() < min.f_cost() { return min; }
+        if self.f_cost() < max.f_cost() { return max; }
+        self
+    }
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self.f_cost().partial_cmp(&other.f_cost()){
+            Some(f_order) => f_order,
+            None => Ordering::Equal,
+        }
+    }
+}
+
 impl Debug for Tile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -202,12 +244,6 @@ impl Debug for Tile {
 impl Tile{
     pub fn f_cost(&self) -> i32{
         self.g_cost + self.h_cost
-    }
-}
-
-impl PartialEq for Tile{
-    fn eq(&self, other: &Self) -> bool {
-        self.x == other.x && self.y == other.y
     }
 }
 
